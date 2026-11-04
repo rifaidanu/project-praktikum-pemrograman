@@ -440,5 +440,3 @@ flowchart TB
 - **Dictionary untuk pencarian cepat:** key `nim` atau `kode`.
 - **Kategori dinamis:** simpan sebagai data, bukan `if/elif` kaku.
 - **Hindari:** variabel global berlebihan, class yang menanggung terlalu banyak tugas, `int(input())` tanpa `try-except`.
-
-**Integritas akademik:** pemahaman dan kepemilikan karya tetap pada mahasiswa. Claude tidak membantu memalsukan histori commit, hasil pengujian, atau kontribusi anggota. Bagian yang belum ada datanya ditandai `[ISI: ...]`.
