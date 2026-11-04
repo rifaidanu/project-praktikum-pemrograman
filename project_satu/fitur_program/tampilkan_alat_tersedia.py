@@ -8,12 +8,8 @@ if TYPE_CHECKING:
 
 
 def menu_tampilkan_alat_tersedia(lab: 'LabManager') -> None:
-    """
-    Fungsi untuk menampilkan daftar semua peralatan yang berstatus TERSEDIA.
-    Parameter:
-        lab (LabManager): Instance utama pengelola laboratorium
-    """
     print("\n=== DAFTAR ALAT TERSEDIA ===")
-    # TODO: Anggota tim dapat mengimplementasikan tampilan alat tersedia di sini:
-    # - lab.tampilkan_alat_tersedia()
-    pass
+    alat_teredia = lab.tampilkan_alat_tersedia()
+
+    for i in alat_teredia:
+        print(i)
