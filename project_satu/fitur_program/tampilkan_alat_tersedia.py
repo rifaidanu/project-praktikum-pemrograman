@@ -8,8 +8,7 @@ if TYPE_CHECKING:
 
 
 def menu_tampilkan_alat_tersedia(lab: 'LabManager') -> None:
-    print("\n=== DAFTAR ALAT TERSEDIA ===")
-    alat_teredia = lab.tampilkan_alat_tersedia()
-
-    for i in alat_teredia:
-        print(i)
+    alat_tersedia = lab.tampilkan_alat_tersedia()
+    print("----------- Alat Tersedia -----------")
+    for alat in alat_tersedia:
+        print(f"{alat.kode_alat} | {alat.nama}")
