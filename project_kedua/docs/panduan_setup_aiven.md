@@ -285,32 +285,13 @@ Karena database-nya **dipakai bersama**, tabel cukup dibuat satu kali oleh satu 
 
 ### Cara B: lewat script Python
 
-Buat file `scripts/init_db.py`:
+Script sudah tersedia di [scripts/init_db.py](../scripts/init_db.py). Jalankan dari folder `project_kedua`:
 
-```python
-"""Menjalankan database/schema.sql lalu database/seed.sql ke database online."""
-import sys
-from pathlib import Path
-
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.append(str(ROOT))
-
-from app.database import Database
-
-
-def jalankan_file_sql(db, path):
-    isi = path.read_text(encoding="utf-8")
-    perintah = [p.strip() for p in isi.split(";") if p.strip()]
-    db.run_transaction([(sql, ()) for sql in perintah])
-    print(f"✅ {path.name}: {len(perintah)} perintah dijalankan")
-
-
-db = Database()
-if db.connect():
-    jalankan_file_sql(db, ROOT / "database" / "schema.sql")
-    jalankan_file_sql(db, ROOT / "database" / "seed.sql")
-    db.close()
+```bash
+python scripts/init_db.py
 ```
+
+Script menjalankan `database/schema.sql` lalu `database/seed.sql` (file yang belum ada dilewati), kemudian menampilkan daftar tabel di database.
 
 > Script ini memecah perintah berdasarkan `;`, jadi jangan tulis `;` di dalam teks data atau komentar SQL. Gunakan `CREATE TABLE IF NOT EXISTS` di `schema.sql` supaya aman jika dijalankan ulang.
 
