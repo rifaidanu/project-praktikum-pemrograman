@@ -1,4 +1,6 @@
 """Paket 1. SQL untuk fitur mahasiswa (menu 1 dan 10)."""
+from app.errors import AturanBisnisError
+from app.models import Mahasiswa, StatusTransaksi
 
 
 class MahasiswaRepository:
@@ -9,38 +11,65 @@ class MahasiswaRepository:
         self._pembaca = pembaca
 
     def tambah(self, mahasiswa):
-        """INSERT satu objek Mahasiswa.
-
-        TODO: self._db.execute("INSERT INTO mahasiswa (...) VALUES (%s, ...)",
-                               (mahasiswa.nim, ...))
-        """
-        raise NotImplementedError("Paket 1: MahasiswaRepository.tambah")
+        """INSERT satu objek Mahasiswa."""
+        self._db.execute(
+            "INSERT INTO mahasiswa (nim, nama, no_hp, status_aktif, dihapus)"
+            " VALUES (%s, %s, %s, %s, %s)",
+            (
+                mahasiswa.nim,
+                mahasiswa.nama,
+                mahasiswa.no_hp,
+                mahasiswa.status_aktif,
+                mahasiswa.dihapus,
+            ),
+        )
 
     def perbarui(self, mahasiswa):
         """UPDATE nama, no_hp, status_aktif, dan dihapus berdasarkan nim."""
-        raise NotImplementedError("Paket 1: MahasiswaRepository.perbarui")
+        return self._db.execute(
+            "UPDATE mahasiswa SET nama = %s, no_hp = %s, status_aktif = %s, dihapus = %s"
+            " WHERE nim = %s",
+            (
+                mahasiswa.nama,
+                mahasiswa.no_hp,
+                mahasiswa.status_aktif,
+                mahasiswa.dihapus,
+                mahasiswa.nim,
+            ),
+        )
 
     def tandai_dihapus(self, nim):
-        """Mengisi dihapus = TRUE, hanya jika mahasiswa tidak punya transaksi aktif.
+        """Mengisi dihapus = TRUE, hanya jika mahasiswa tidak punya transaksi aktif."""
+        with self._db.transaksi() as trx:
+            baris = trx.fetch_one(
+                "SELECT nim FROM mahasiswa WHERE nim = %s AND dihapus = FALSE FOR UPDATE",
+                (nim,),
+            )
+            if baris is None:
+                raise AturanBisnisError(f"Mahasiswa dengan NIM '{nim}' tidak ditemukan.")
 
-        TODO, dalam satu `with self._db.transaksi() as trx:`
-        1. SELECT baris mahasiswa dengan FOR UPDATE (mengunci baris).
-        2. Hitung transaksi yang statusnya bukan 'selesai' lewat trx.fetch_one.
-        3. Jika ada, raise AturanBisnisError (otomatis rollback). Jika tidak, UPDATE.
-        """
-        raise NotImplementedError("Paket 1: MahasiswaRepository.tandai_dihapus")
+            aktif = trx.fetch_one(
+                "SELECT COUNT(*) AS jumlah FROM transaksi WHERE nim = %s AND status <> %s",
+                (nim, StatusTransaksi.SELESAI),
+            )
+            if aktif["jumlah"] > 0:
+                raise AturanBisnisError(
+                    f"Mahasiswa tidak bisa dihapus karena masih memiliki {aktif['jumlah']} transaksi aktif."
+                )
+
+            trx.execute("UPDATE mahasiswa SET dihapus = TRUE WHERE nim = %s", (nim,))
 
     def cari(self, kata_kunci):
-        """List objek Mahasiswa yang NIM atau namanya mengandung kata_kunci.
-
-        TODO: WHERE dihapus = FALSE AND (nim LIKE %s OR nama LIKE %s), params f"%{kata_kunci}%".
-        Kata kunci kosong berarti semua mahasiswa. Ubah baris dengan Mahasiswa.dari_baris.
-        """
-        raise NotImplementedError("Paket 1: MahasiswaRepository.cari")
+        """List objek Mahasiswa yang NIM atau namanya mengandung kata_kunci."""
+        pola = f"%{kata_kunci}%"
+        baris = self._db.fetch_all(
+            "SELECT * FROM mahasiswa"
+            " WHERE dihapus = FALSE AND (nim LIKE %s OR nama LIKE %s)"
+            " ORDER BY nim",
+            (pola, pola),
+        )
+        return [Mahasiswa.dari_baris(b) for b in baris]
 
     def riwayat(self, nim):
-        """List objek Transaksi milik mahasiswa, aktif maupun selesai.
-
-        TODO: self._pembaca.daftar_transaksi("t.nim = %s", (nim,))
-        """
-        raise NotImplementedError("Paket 1: MahasiswaRepository.riwayat")
+        """List objek Transaksi milik mahasiswa, aktif maupun selesai."""
+        return self._pembaca.daftar_transaksi("t.nim = %s", (nim,))

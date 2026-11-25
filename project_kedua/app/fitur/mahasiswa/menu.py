@@ -1,5 +1,6 @@
 """Paket 1. Input dan tampilan mahasiswa (menu 1 dan 10)."""
 from app import ui
+from app.models import StatusMahasiswa
 
 
 class MahasiswaMenu:
@@ -18,21 +19,68 @@ class MahasiswaMenu:
         ])
 
     def tambah(self):
-        """TODO: ui.input_wajib untuk NIM, nama, no HP -> service.tambah -> ui.sukses."""
-        raise NotImplementedError("Paket 1: MahasiswaMenu.tambah")
+        """Menu 1 -> 1: Tambah mahasiswa."""
+        nim = ui.input_wajib("NIM").upper()
+        nama = ui.input_wajib("Nama")
+        no_hp = ui.input_wajib("No HP")
+        self._service.tambah(nim, nama, no_hp)
+        ui.sukses(f"Mahasiswa '{nama}' ({nim}) berhasil ditambahkan.")
 
     def edit(self):
-        """TODO: minta NIM -> service.ambil -> ui.input_opsional, ui.input_enum -> service.edit."""
-        raise NotImplementedError("Paket 1: MahasiswaMenu.edit")
+        """Menu 1 -> 2: Edit mahasiswa."""
+        nim = ui.input_wajib("NIM").upper()
+        mhs = self._service.ambil(nim)
+        nama = ui.input_opsional("Nama", mhs.nama)
+        no_hp = ui.input_opsional("No HP", mhs.no_hp)
+        status_aktif = ui.input_enum(
+            f"Status aktif (saat ini: {mhs.status_aktif.value})", StatusMahasiswa
+        )
+        self._service.edit(mhs.nim, nama, no_hp, status_aktif)
+        ui.sukses(f"Data mahasiswa '{mhs.nim}' berhasil diperbarui.")
 
     def hapus(self):
-        """TODO: minta NIM -> ui.konfirmasi -> service.hapus."""
-        raise NotImplementedError("Paket 1: MahasiswaMenu.hapus")
+        """Menu 1 -> 3: Hapus mahasiswa."""
+        nim = ui.input_wajib("NIM").upper()
+        mhs = self._service.ambil(nim)
+        if ui.konfirmasi(f"Yakin ingin menghapus {mhs.nama} ({mhs.nim})?"):
+            self._service.hapus(mhs.nim)
+            ui.sukses(f"Mahasiswa '{mhs.nama}' ({mhs.nim}) berhasil dihapus.")
+        else:
+            ui.info("Penghapusan dibatalkan.")
 
     def cari(self):
-        """TODO: minta kata kunci -> service.cari -> ui.tabel."""
-        raise NotImplementedError("Paket 1: MahasiswaMenu.cari")
+        """Menu 1 -> 4: Cari mahasiswa."""
+        kata_kunci = input("Kata kunci NIM/Nama (kosong = semua): ").strip()
+        daftar = self._service.cari(kata_kunci)
+        ui.tabel(
+            ["NIM", "Nama", "No HP", "Status"],
+            [[m.nim, m.nama, m.no_hp, m.status_aktif.value] for m in daftar],
+        )
 
     def tampilkan_riwayat(self):
-        """Menu 10. TODO: minta NIM -> service.riwayat -> tampilkan transaksi dan alatnya."""
-        raise NotImplementedError("Paket 1: MahasiswaMenu.tampilkan_riwayat")
+        """Menu 10: Riwayat peminjaman mahasiswa."""
+        nim = ui.input_wajib("NIM").upper()
+        daftar_trx = self._service.riwayat(nim)
+        if not daftar_trx:
+            ui.info("Mahasiswa ini belum memiliki riwayat peminjaman.")
+            return
+        for trx in daftar_trx:
+            ket_terlambat = " [TERLAMBAT]" if trx.terlambat() else ""
+            print(
+                f"\n[{trx.id_transaksi}] {trx.nama_mahasiswa} ({trx.nim}) | "
+                f"Pinjam: {trx.tgl_pinjam} | Batas: {trx.batas_kembali} | "
+                f"Status: {trx.status.value}{ket_terlambat}"
+            )
+            ui.tabel(
+                ["Kode Alat", "Nama Alat", "Status", "Kondisi Kembali", "Tgl Kembali"],
+                [
+                    [
+                        item.kode_alat,
+                        item.nama_alat,
+                        item.status.value,
+                        item.kondisi_kembali.value if item.kondisi_kembali else "-",
+                        item.tgl_kembali,
+                    ]
+                    for item in trx.daftar_item
+                ],
+            )
