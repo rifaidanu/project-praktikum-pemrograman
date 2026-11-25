@@ -111,157 +111,15 @@ Cek dengan `git status`. File `.env` **tidak boleh** muncul di daftar file yang 
 
 ---
 
-## 6. Buat class `Database` *(dikerjakan 1 anggota, dipakai semua)*
+## 6. Class `Database` *(sudah tersedia)*
 
-Ini adalah **satu pintu** akses database (lihat bagian 2 dan 11 di `project_instruction.md`). Semua menu memanggil method class ini, tidak ada SQL di file menu.
-
-Contoh lokasi: `app/database.py` (sesuaikan dengan struktur folder kelompok).
-
-```python
-"""Satu pintu akses ke database MySQL online."""
-import os
-
-import mysql.connector
-from mysql.connector import Error
-from dotenv import load_dotenv
-
-load_dotenv()  # membaca file .env di root repo
-
-
-class Database:
-    """Mengelola koneksi, query, dan transaction ke MySQL."""
-
-    def __init__(self):
-        self.conn = None
-
-    def connect(self):
-        """Membuka koneksi. Mengembalikan True jika berhasil, False jika gagal."""
-        try:
-            config = {
-                "host": os.getenv("DB_HOST"),
-                "port": int(os.getenv("DB_PORT", "3306")),
-                "user": os.getenv("DB_USER"),
-                "password": os.getenv("DB_PASSWORD"),
-                "database": os.getenv("DB_NAME"),
-                "connection_timeout": 10,
-            }
-            ssl_ca = os.getenv("DB_SSL_CA")
-            if ssl_ca:
-                config["ssl_ca"] = ssl_ca
-            self.conn = mysql.connector.connect(**config)
-            return True
-        except (Error, ValueError) as e:
-            print(f"⚠️ Gagal terhubung ke database: {e}")
-            return False
-
-    def _pastikan_terhubung(self):
-        """Menyambung ulang jika koneksi terputus karena lama tidak dipakai."""
-        self.conn.ping(reconnect=True, attempts=3, delay=1)
-
-    def fetch_all(self, sql, params=()):
-        """SELECT banyak baris. Hasil: list of dict, misal [{'kode': 'A001', ...}]."""
-        self._pastikan_terhubung()
-        cur = self.conn.cursor(dictionary=True)
-        try:
-            cur.execute(sql, params)
-            return cur.fetchall()
-        finally:
-            cur.close()
-
-    def fetch_one(self, sql, params=()):
-        """SELECT satu baris. Hasil: dict, atau None jika tidak ada."""
-        self._pastikan_terhubung()
-        cur = self.conn.cursor(dictionary=True)
-        try:
-            cur.execute(sql, params)
-            return cur.fetchone()
-        finally:
-            cur.close()
-
-    def execute(self, sql, params=()):
-        """INSERT/UPDATE/DELETE satu perintah, langsung commit."""
-        return self.run_transaction([(sql, params)])
-
-    def run_transaction(self, langkah):
-        """Menjalankan beberapa perintah sebagai SATU transaction.
-
-        langkah: list of (sql, params).
-        Semua berhasil -> commit. Satu gagal -> rollback semua, lalu error diteruskan.
-        """
-        self._pastikan_terhubung()
-        cur = self.conn.cursor()
-        try:
-            for sql, params in langkah:
-                cur.execute(sql, params)
-            self.conn.commit()
-            return cur.rowcount
-        except Error:
-            self.conn.rollback()
-            raise
-        finally:
-            cur.close()
-
-    def close(self):
-        """Menutup koneksi. Panggil saat user memilih menu Keluar."""
-        if self.conn and self.conn.is_connected():
-            self.conn.close()
-```
-
-### Contoh pemakaian
-
-```python
-db = Database()
-if not db.connect():
-    exit()
-
-# SELECT, selalu pakai %s, JANGAN f-string
-alat = db.fetch_one("SELECT * FROM alat WHERE kode = %s", ("A001",))
-tersedia = db.fetch_all("SELECT * FROM alat WHERE status = %s", ("tersedia",))
-
-# INSERT satu baris
-db.execute(
-    "INSERT INTO mahasiswa (nim, nama, no_hp, status_aktif) VALUES (%s, %s, %s, %s)",
-    ("M002", "Budi Santoso", "081298765432", "aktif"),
-)
-
-# Peminjaman: beberapa tabel sekaligus dalam SATU transaction
-db.run_transaction([
-    ("INSERT INTO transaksi (id, nim, tgl_pinjam, batas_kembali, status) VALUES (%s, %s, %s, %s, %s)",
-     ("T002", "M002", "2026-11-19", "2026-11-26", "dipinjam")),
-    ("INSERT INTO detail_transaksi (id_transaksi, kode_alat, status) VALUES (%s, %s, %s)",
-     ("T002", "A001", "dipinjam")),
-    ("UPDATE alat SET status = %s WHERE kode = %s", ("dipinjam", "A001")),
-])
-
-db.close()
-```
-
-> ✅ Benar: `cur.execute("... WHERE kode = %s", (kode,))`, perhatikan koma pada `(kode,)` karena params harus tuple.
-> ❌ Salah: `cur.execute(f"... WHERE kode = '{kode}'")`, rawan SQL injection dan error jika input berisi tanda kutip.
+Kodenya ada di [app/database.py](../app/database.py). Cara memakainya ada di [PANDUAN_PENGEMBANGAN.md](PANDUAN_PENGEMBANGAN.md) bagian 5.
 
 ---
 
 ## 7. Tes koneksi *(setiap anggota)*
 
-Buat file `scripts/tes_koneksi.py`:
-
-```python
-import sys
-from pathlib import Path
-
-sys.stdout.reconfigure(encoding="utf-8")  # agar emoji tidak error di console Windows
-sys.path.append(str(Path(__file__).resolve().parent.parent))  # agar folder app terbaca
-
-from app.database import Database
-
-db = Database()
-if db.connect():
-    versi = db.fetch_one("SELECT VERSION() AS versi")
-    print(f"✅ Terhubung! Versi MySQL: {versi['versi']}")
-    db.close()
-```
-
-Jalankan dari root repo:
+Dari folder `project_kedua`:
 
 ```bash
 python scripts/tes_koneksi.py
@@ -280,7 +138,7 @@ Karena database-nya **dipakai bersama**, tabel cukup dibuat satu kali oleh satu 
 1. Install **DBeaver Community** atau **MySQL Workbench**.
 2. Buat koneksi baru → MySQL → isi Host, Port, User, Password, Database sesuai `.env`.
 3. Di pengaturan SSL, aktifkan **Use SSL** (pilih file `ca.pem` jika diminta).
-4. Buka SQL editor, tempel isi `database/schema.sql` (contoh ada di `project_instruction.md` bagian 3.1), lalu jalankan.
+4. Buka SQL editor, tempel isi `database/schema.sql`, lalu jalankan.
 5. Jalankan juga `database/seed.sql` untuk data contoh.
 
 ### Cara B: lewat script Python
@@ -291,7 +149,7 @@ Script sudah tersedia di [scripts/init_db.py](../scripts/init_db.py). Jalankan d
 python scripts/init_db.py
 ```
 
-Script menjalankan `database/schema.sql` lalu `database/seed.sql` (file yang belum ada dilewati), kemudian menampilkan daftar tabel di database.
+Script menjalankan `database/schema.sql` lalu `database/seed.sql`, kemudian menampilkan daftar tabel di database.
 
 > Script ini memecah perintah berdasarkan `;`, jadi jangan tulis `;` di dalam teks data atau komentar SQL. Gunakan `CREATE TABLE IF NOT EXISTS` di `schema.sql` supaya aman jika dijalankan ulang.
 
@@ -303,12 +161,12 @@ Script menjalankan `database/schema.sql` lalu `database/seed.sql` (file yang bel
 |---|---|---|
 | `2003: Can't connect to MySQL server` | Service Aiven sedang **mati/powered off**, host/port salah, atau internet bermasalah | Login ke dashboard Aiven, nyalakan service (**Power on**), tunggu status *Running*. Cek ulang host dan port di `.env` |
 | `1045: Access denied for user` | Password atau user salah | Salin ulang password dari dashboard, pastikan tidak ada spasi di `.env` |
-| Error berisi `SSL` / `certificate` | Library tidak bisa memverifikasi SSL | Isi `DB_SSL_CA=` dengan path lengkap ke `ca.pem`, misal `DB_SSL_CA=D:/kuliah/ca.pem` |
+| Error berisi `SSL` / `certificate` | Library tidak bisa memverifikasi SSL | Simpan `ca.pem` di folder `project_kedua`, lalu isi `DB_SSL_CA=ca.pem` |
 | `1049: Unknown database` | Nama database di `.env` salah | Pakai `defaultdb`, atau buat dulu database dengan nama yang kamu tulis |
 | `1146: Table ... doesn't exist` | Tabel belum dibuat | Jalankan langkah 8 |
 | `1062: Duplicate entry` | PK sudah ada (NIM/kode/ID ganda) | Normal untuk input duplikat. Tangkap dengan `try-except` dan tampilkan pesan ramah |
 | `1451` / `1452: foreign key constraint fails` | Hapus data yang masih dirujuk, atau insert dengan NIM/kode yang tidak ada | Validasi dulu di program. Urutan insert: mahasiswa & alat sebelum transaksi |
-| `2013: Lost connection` / `2055` | Koneksi terputus karena lama diam | Sudah ditangani `_pastikan_terhubung()`. Jika masih terjadi, jalankan ulang program |
+| `2013: Lost connection` / `2055` | Koneksi terputus karena lama diam | Sudah ditangani class `Database`. Jika masih terjadi, jalankan ulang program |
 | `UnicodeEncodeError: 'charmap' codec can't encode` | Console Windows tidak bisa menampilkan emoji | Tambahkan `sys.stdout.reconfigure(encoding="utf-8")` di awal file yang dijalankan (`main.py`, script) |
 | `2003 ... (10060)` dengan port `12345` | Port masih angka contoh dari panduan | Ganti `DB_PORT` dengan port asli dari dashboard Aiven |
 | `ModuleNotFoundError: No module named 'mysql'` | Library belum terinstall di Python yang dipakai | `python -m pip install mysql-connector-python python-dotenv` |

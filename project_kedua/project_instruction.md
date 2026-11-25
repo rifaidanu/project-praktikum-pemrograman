@@ -83,62 +83,14 @@ flowchart LR
 
 | Tabel | Isi | Kolom (contoh) |
 |---|---|---|
-| `mahasiswa` | Data mahasiswa | `nim` PK, `nama`, `no_hp`, `status_aktif` |
-| `alat` | Data peralatan | `kode` PK, `nama`, `kategori`, `kondisi`, `status` |
+| `mahasiswa` | Data mahasiswa | `nim` PK, `nama`, `no_hp`, `status_aktif`, `dihapus` |
+| `alat` | Data peralatan | `kode` PK, `nama`, `kategori`, `kondisi`, `status`, `dihapus` |
 | `transaksi` | Header transaksi | `id` PK, `nim` FK, `tgl_pinjam`, `batas_kembali`, `status` |
 | `detail_transaksi` | Alat per transaksi + pengembalian | `id_transaksi` FK, `kode_alat` FK, `status`, `kondisi_kembali`, `tgl_kembali` |
 
-Contoh skema (`schema.sql`):
+Skema yang dipakai: [database/schema.sql](database/schema.sql).
 
-```sql
-CREATE TABLE mahasiswa (
-    nim          VARCHAR(20)  PRIMARY KEY,
-    nama         VARCHAR(100) NOT NULL,
-    no_hp        VARCHAR(20),
-    status_aktif ENUM('aktif','nonaktif') NOT NULL DEFAULT 'aktif'
-);
-
-CREATE TABLE alat (
-    kode     VARCHAR(20)  PRIMARY KEY,
-    nama     VARCHAR(100) NOT NULL,
-    kategori VARCHAR(50)  NOT NULL,
-    kondisi  ENUM('baik','rusak ringan','rusak berat') NOT NULL DEFAULT 'baik',
-    status   ENUM('tersedia','dipinjam','tidak tersedia') NOT NULL DEFAULT 'tersedia'
-);
-
-CREATE TABLE transaksi (
-    id            VARCHAR(20) PRIMARY KEY,
-    nim           VARCHAR(20) NOT NULL,
-    tgl_pinjam    DATE NOT NULL,
-    batas_kembali DATE NOT NULL,
-    status        ENUM('dipinjam','sebagian dikembalikan','selesai') NOT NULL DEFAULT 'dipinjam',
-    FOREIGN KEY (nim) REFERENCES mahasiswa(nim)
-);
-
-CREATE TABLE detail_transaksi (
-    id_transaksi    VARCHAR(20) NOT NULL,
-    kode_alat       VARCHAR(20) NOT NULL,
-    status          ENUM('dipinjam','dikembalikan') NOT NULL DEFAULT 'dipinjam',
-    kondisi_kembali ENUM('baik','rusak ringan','rusak berat') NULL,
-    tgl_kembali     DATE NULL,
-    PRIMARY KEY (id_transaksi, kode_alat),
-    FOREIGN KEY (id_transaksi) REFERENCES transaksi(id),
-    FOREIGN KEY (kode_alat)    REFERENCES alat(kode)
-);
-```
-
-Contoh data awal (`seed.sql`):
-
-```sql
-INSERT INTO mahasiswa VALUES ('M001','Andi Pratama','081234567890','aktif');
-INSERT INTO alat VALUES
-  ('A001','Kamera Digital','perangkat multimedia','baik','dipinjam'),
-  ('A003','Kabel LAN','perangkat jaringan','rusak berat','tidak tersedia');
-INSERT INTO transaksi VALUES ('T001','M001','2026-08-10','2026-08-17','sebagian dikembalikan');
-INSERT INTO detail_transaksi VALUES
-  ('T001','A001','dipinjam',NULL,NULL),
-  ('T001','A003','dikembalikan','rusak berat','2026-08-12');
-```
+Data dummy: [database/seed.sql](database/seed.sql) (6 mahasiswa, 10 alat, 5 transaksi).
 
 > Skema ini hanya contoh. Kelompok boleh menentukan sendiri nama tabel, kolom, dan tipe data, **asal konsisten, ada di `schema.sql`, dan didokumentasikan di README**.
 
@@ -155,6 +107,7 @@ erDiagram
         varchar nama
         varchar no_hp
         enum status_aktif
+        boolean dihapus
     }
     ALAT {
         varchar kode PK
@@ -162,6 +115,7 @@ erDiagram
         varchar kategori
         enum kondisi
         enum status
+        boolean dihapus
     }
     TRANSAKSI {
         varchar id PK
@@ -391,6 +345,8 @@ flowchart LR
 🎯 **Pertanyaan yang harus bisa dijawab tiap anggota:** *Mengapa struktur class dan desain tabel ini dipilih, bagaimana class-class bekerja sama menyelesaikan masalah, dan bagaimana data dijaga tetap konsisten di database?*
 
 ### 8.2 Tahap 2: Implementasi
+
+> 📘 Pembagian paket dan cara mengerjakan fitur: [docs/PANDUAN_PENGEMBANGAN.md](docs/PANDUAN_PENGEMBANGAN.md).
 
 Setiap anggota **wajib berkontribusi** lewat akun GitHub masing-masing. Bentuk kontribusi: membuat class, mengembangkan fitur, membuat class akses database, script migrasi, validasi input, testing, memperbaiki bug, refactoring, dokumentasi.
 
