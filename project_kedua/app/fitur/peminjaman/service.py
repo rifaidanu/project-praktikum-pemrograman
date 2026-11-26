@@ -14,41 +14,45 @@ class PeminjamanService:
 
     def buat_transaksi(self, nim, daftar_kode, lama_hari):
         """Membuat peminjaman. Mengembalikan ID transaksi."""
-        self._periksa_mahasiswa(nim)
-        self._periksa_daftar_kode(daftar_kode)
-        if not 1 <= lama_hari <= Transaksi.MAKS_HARI:
+        nim = nim.strip().upper()
+
+        # Lama pinjam: 1 sampai 7 hari
+        if lama_hari < 1 or lama_hari > Transaksi.MAKS_HARI:
             raise AturanBisnisError(f"Lama pinjam harus 1 sampai {Transaksi.MAKS_HARI} hari.")
-        self._periksa_alat(daftar_kode)
 
-        tgl_pinjam = date.today()
-        batas_kembali = tgl_pinjam + timedelta(days=lama_hari)
-        return self._repository.simpan(nim, daftar_kode, tgl_pinjam, batas_kembali)
+        # Daftar alat: tidak boleh kosong dan tidak boleh ada kode ganda
+        if len(daftar_kode) == 0:
+            raise AturanBisnisError("Pilih minimal satu alat.")
+        if len(set(daftar_kode)) != len(daftar_kode):
+            raise AturanBisnisError("Kode alat tidak boleh ganda.")
 
-    def _periksa_mahasiswa(self, nim):
+        # Mahasiswa harus ada dan berstatus aktif
         mahasiswa = self._pembaca.ambil_mahasiswa(nim)
         if mahasiswa is None:
             raise AturanBisnisError(f"Mahasiswa dengan NIM '{nim}' tidak ditemukan.")
         if mahasiswa.status_aktif != StatusMahasiswa.AKTIF:
-            raise AturanBisnisError(f"Mahasiswa {mahasiswa.nama} berstatus tidak aktif.")
-        if self._pembaca.hitung_transaksi_aktif(nim) >= Mahasiswa.MAKS_TRANSAKSI_AKTIF:
+            raise AturanBisnisError(f"Mahasiswa '{mahasiswa.nama}' berstatus tidak aktif.")
+
+        # Aturan 2: maksimal 2 transaksi aktif
+        jumlah_aktif = self._pembaca.hitung_transaksi_aktif(nim)
+        if jumlah_aktif >= Mahasiswa.MAKS_TRANSAKSI_AKTIF:
             raise AturanBisnisError(
-                f"{mahasiswa.nama} sudah punya {Mahasiswa.MAKS_TRANSAKSI_AKTIF} transaksi aktif."
+                f"Mahasiswa sudah memiliki {jumlah_aktif} transaksi aktif "
+                f"(maksimal {Mahasiswa.MAKS_TRANSAKSI_AKTIF})."
             )
 
-    @staticmethod
-    def _periksa_daftar_kode(daftar_kode):
-        if not daftar_kode:
-            raise AturanBisnisError("Pilih minimal satu alat.")
-        if len(set(daftar_kode)) != len(daftar_kode):
-            raise AturanBisnisError("Ada kode alat yang ditulis lebih dari sekali.")
-
-    def _periksa_alat(self, daftar_kode):
+        # Aturan 1: semua alat harus ada dan tersedia
         for kode in daftar_kode:
             alat = self._pembaca.ambil_alat(kode)
             if alat is None:
-                raise AturanBisnisError(f"Alat dengan kode '{kode}' tidak ditemukan.")
+                raise AturanBisnisError(f"Alat '{kode}' tidak ditemukan.")
             if not alat.tersedia():
-                raise AturanBisnisError(f"{alat.nama} ({kode}) berstatus {alat.status.value}.")
+                raise AturanBisnisError(f"Alat '{kode}' tidak bisa dipinjam (status: {alat.status.value}).")
+
+        # Semua aturan lolos, hitung tanggal lalu simpan
+        hari_ini = date.today()
+        batas_kembali = hari_ini + timedelta(days=lama_hari)
+        return self._repository.simpan(nim, daftar_kode, hari_ini, batas_kembali)
 
     def daftar_alat_tersedia(self):
         """List objek Alat yang siap dipinjam."""

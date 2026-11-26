@@ -11,43 +11,46 @@ class PeminjamanMenu:
 
     def buat_transaksi(self):
         """Menu 3: Buat transaksi peminjaman."""
-        daftar_alat = self._service.daftar_alat_tersedia()
-        if not daftar_alat:
-            ui.info("Tidak ada alat yang tersedia.")
-            return
+        # Tampilkan alat yang tersedia agar user tahu kode yang boleh dipilih
+        tersedia = self._service.daftar_alat_tersedia()
         ui.tabel(
             ["Kode", "Nama", "Kategori"],
-            [[a.kode, a.nama, a.kategori] for a in daftar_alat],
+            [[a.kode, a.nama, a.kategori] for a in tersedia],
         )
-        nim = ui.input_wajib("NIM").upper()
+
+        nim = ui.input_wajib("NIM mahasiswa").upper()
         teks = ui.input_wajib("Kode alat (pisahkan dengan koma)")
+        # Pecah teks pada koma, buang spasi, jadikan huruf besar, abaikan yang kosong
         daftar_kode = [k.strip().upper() for k in teks.split(",") if k.strip()]
         lama_hari = ui.input_angka("Lama pinjam (hari)", 1, Transaksi.MAKS_HARI)
+
         id_transaksi = self._service.buat_transaksi(nim, daftar_kode, lama_hari)
-        ui.sukses(f"Peminjaman berhasil. ID transaksi: {id_transaksi}")
+        ui.sukses(f"Transaksi {id_transaksi} berhasil dibuat.")
 
     def tampilkan_transaksi(self):
-        """Menu 4: Tampilkan transaksi."""
+        """Menu 4: Tampilkan semua transaksi beserta alatnya."""
         daftar = self._service.daftar_transaksi()
         if not daftar:
             ui.info("Belum ada transaksi.")
             return
+
         for t in daftar:
-            tanda = " [TERLAMBAT]" if t.terlambat() else ""
+            penanda = "  [TERLAMBAT]" if t.terlambat() else ""
+            print(f"\n{t.id_transaksi} | {t.nim} - {t.nama_mahasiswa}")
             print(
-                f"\n[{t.id_transaksi}] {t.nama_mahasiswa} ({t.nim}) | Pinjam: {t.tgl_pinjam}"
-                f" | Batas: {t.batas_kembali} | Status: {t.status.value}{tanda}"
+                f"Pinjam: {t.tgl_pinjam} | Batas kembali: {t.batas_kembali}"
+                f" | Status: {t.status.value}{penanda}"
             )
             ui.tabel(
-                ["Kode", "Nama Alat", "Status", "Kondisi Kembali", "Tgl Kembali"],
+                ["Kode", "Nama alat", "Status", "Kondisi kembali", "Tgl kembali"],
                 [
                     [
-                        item.kode_alat,
-                        item.nama_alat,
-                        item.status.value,
-                        item.kondisi_kembali.value if item.kondisi_kembali else None,
-                        item.tgl_kembali,
+                        i.kode_alat,
+                        i.nama_alat,
+                        i.status.value,
+                        i.kondisi_kembali.value if i.kondisi_kembali else None,
+                        i.tgl_kembali,
                     ]
-                    for item in t.daftar_item
+                    for i in t.daftar_item
                 ],
             )
