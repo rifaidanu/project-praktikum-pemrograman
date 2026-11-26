@@ -1,11 +1,7 @@
-"""Paket 3. SQL untuk peminjaman (menu 3 dan 4)."""
 from app.errors import AturanBisnisError, DataGandaError
 from app.models import Mahasiswa, StatusAlat, StatusItem, StatusTransaksi
 
-
 class PeminjamanRepository:
-    """Hanya berisi SQL, tanpa input/print."""
-
     MAKS_PERCOBAAN = 3
 
     def __init__(self, db, pembaca):
@@ -13,7 +9,6 @@ class PeminjamanRepository:
         self._pembaca = pembaca
 
     def simpan(self, nim, daftar_kode, tgl_pinjam, batas_kembali):
-        """Menyimpan satu peminjaman. Mengembalikan ID transaksi."""
         for _ in range(self.MAKS_PERCOBAAN):
             try:
                 return self._simpan_sekali(nim, daftar_kode, tgl_pinjam, batas_kembali)
@@ -22,7 +17,6 @@ class PeminjamanRepository:
         raise AturanBisnisError("Sistem sedang sibuk, silakan coba lagi.")
 
     def _simpan_sekali(self, nim, daftar_kode, tgl_pinjam, batas_kembali):
-        """Semua query dalam satu transaction. Ada error -> semuanya batal."""
         with self._db.transaksi() as trx:
             self._kunci_mahasiswa(trx, nim)
             id_baru = self._buat_id(trx)
@@ -37,7 +31,6 @@ class PeminjamanRepository:
 
     @staticmethod
     def _kunci_mahasiswa(trx, nim):
-        """Mengunci baris mahasiswa, lalu memeriksa ulang Aturan 2."""
         mahasiswa = trx.fetch_one(
             "SELECT nim FROM mahasiswa WHERE nim = %s AND dihapus = FALSE FOR UPDATE",
             (nim,),
@@ -55,7 +48,6 @@ class PeminjamanRepository:
 
     @staticmethod
     def _buat_id(trx):
-        """Nomor terbesar + 1. Tabel kosong menghasilkan T001."""
         baris = trx.fetch_one(
             "SELECT MAX(CAST(SUBSTRING(id, 2) AS UNSIGNED)) AS nomor FROM transaksi"
         )
@@ -63,7 +55,6 @@ class PeminjamanRepository:
 
     @staticmethod
     def _pinjam_alat(trx, id_transaksi, kode):
-        """Menandai alat dipinjam (Aturan 1), lalu mencatatnya di detail_transaksi."""
         jumlah = trx.execute(
             "UPDATE alat SET status = %s WHERE kode = %s AND status = %s AND dihapus = FALSE",
             (StatusAlat.DIPINJAM, kode, StatusAlat.TERSEDIA),
@@ -76,5 +67,4 @@ class PeminjamanRepository:
         )
 
     def daftar_transaksi(self):
-        """List objek Transaksi lengkap dengan itemnya."""
         return self._pembaca.daftar_transaksi()
