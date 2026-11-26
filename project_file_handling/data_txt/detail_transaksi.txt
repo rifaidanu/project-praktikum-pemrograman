@@ -1,0 +1,5 @@
+# id_transaksi|kode_alat|nama_alat|kategori|sudah_kembali|tgl_kembali|kondisi_kembali
+T001|ALT-001|Multimeter Digital Fluke|Elektronika|0|-|-
+T001|ALT-002|Oscilloscope Rigol|Elektronika|0|-|-
+T002|ALT-003|Crimping Tool RJ45|Jaringan|1|2026-11-26|baik
+T002|ALT-004|LAN Tester Pro|Jaringan|0|-|-

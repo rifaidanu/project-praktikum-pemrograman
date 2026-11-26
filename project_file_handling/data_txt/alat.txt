@@ -1,0 +1,11 @@
+# kode_alat|nama|kategori|kondisi|status
+ALT-001|Multimeter Digital Fluke|Elektronika|baik|dipinjam
+ALT-002|Oscilloscope Rigol|Elektronika|baik|dipinjam
+ALT-003|Crimping Tool RJ45|Jaringan|baik|tersedia
+ALT-004|LAN Tester Pro|Jaringan|baik|dipinjam
+ALT-005|Switch Cisco 24-Port|Jaringan|baik|tersedia
+ALT-006|Solder Station Hakko|Elektronika|rusak ringan|tidak tersedia
+ALT-007|Kamera DSLR Canon 80D|Multimedia|baik|tersedia
+ALT-008|Tripod Kamera Takara|Multimedia|baik|tersedia
+ALT-009|Power Supply DC GW Instek|Elektronika|rusak berat|tidak tersedia
+ALT-010|Raspberry Pi 4 Model B|Komputasi|baik|tersedia

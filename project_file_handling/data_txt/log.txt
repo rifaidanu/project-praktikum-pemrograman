@@ -1,0 +1,20 @@
+# waktu|pesan
+2026-11-26 08:40:04|Tambah mahasiswa: M001 - Andi Pratama
+2026-11-26 08:40:04|Tambah mahasiswa: M002 - Budi Santoso
+2026-11-26 08:40:04|Tambah mahasiswa: M003 - Citra Lestari
+2026-11-26 08:40:04|Tambah mahasiswa: M004 - Dewi Anggraini
+2026-11-26 08:40:04|Tambah mahasiswa: M005 - Eko Prasetyo
+2026-11-26 08:40:04|Tambah mahasiswa: M006 - Fajar Hidayat
+2026-11-26 08:40:04|Tambah alat: ALT-001 - Multimeter Digital Fluke (Elektronika)
+2026-11-26 08:40:04|Tambah alat: ALT-002 - Oscilloscope Rigol (Elektronika)
+2026-11-26 08:40:04|Tambah alat: ALT-003 - Crimping Tool RJ45 (Jaringan)
+2026-11-26 08:40:04|Tambah alat: ALT-004 - LAN Tester Pro (Jaringan)
+2026-11-26 08:40:04|Tambah alat: ALT-005 - Switch Cisco 24-Port (Jaringan)
+2026-11-26 08:40:04|Tambah alat: ALT-006 - Solder Station Hakko (Elektronika)
+2026-11-26 08:40:04|Tambah alat: ALT-007 - Kamera DSLR Canon 80D (Multimedia)
+2026-11-26 08:40:04|Tambah alat: ALT-008 - Tripod Kamera Takara (Multimedia)
+2026-11-26 08:40:04|Tambah alat: ALT-009 - Power Supply DC GW Instek (Elektronika)
+2026-11-26 08:40:04|Tambah alat: ALT-010 - Raspberry Pi 4 Model B (Komputasi)
+2026-11-26 08:40:04|Buat transaksi T001 untuk NIM M001 (2 alat)
+2026-11-26 08:40:04|Buat transaksi T002 untuk NIM M002 (2 alat)
+2026-11-26 08:40:04|Pengembalian alat ALT-003 pada transaksi T002 (Kondisi: baik)
