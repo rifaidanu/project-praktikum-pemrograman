@@ -1,16 +1,12 @@
-"""Paket 3. Input dan tampilan peminjaman (menu 3 dan 4)."""
 from app import ui
 from app.models import Transaksi
 
-
 class PeminjamanMenu:
-    """Hanya input dan print. Error ditangani ui.jalankan_aksi, tidak perlu try-except di sini."""
 
     def __init__(self, service):
         self._service = service
 
     def buat_transaksi(self):
-        """Menu 3: Buat transaksi peminjaman."""
         # Tampilkan alat yang tersedia agar user tahu kode yang boleh dipilih
         tersedia = self._service.daftar_alat_tersedia()
         ui.tabel(
@@ -28,7 +24,6 @@ class PeminjamanMenu:
         ui.sukses(f"Transaksi {id_transaksi} berhasil dibuat.")
 
     def tampilkan_transaksi(self):
-        """Menu 4: Tampilkan semua transaksi beserta alatnya."""
         daftar = self._service.daftar_transaksi()
         if not daftar:
             ui.info("Belum ada transaksi.")
