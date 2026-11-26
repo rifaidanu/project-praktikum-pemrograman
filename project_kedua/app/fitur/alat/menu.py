@@ -1,15 +1,18 @@
 """Paket 2. Input dan tampilan alat (menu 2, 7, 8, 9)."""
 from app import ui
+from app.models.alat import KondisiAlat
 
 
 class AlatMenu:
     """Hanya input dan print. Error ditangani ui.jalankan_aksi, tidak perlu try-except di sini."""
 
+    KOLOM = ["Kode", "Nama", "Kategori", "Kondisi", "Status"]
+
     def __init__(self, service):
         self._service = service
 
     def kelola(self):
-        """Menu 2. Submenu sudah jadi, tinggal isi method di bawah."""
+        """Menu 2."""
         ui.jalankan_menu("KELOLA ALAT", [
             ("Tambah alat", self.tambah),
             ("Edit alat", self.edit),
@@ -18,29 +21,51 @@ class AlatMenu:
         ])
 
     def tambah(self):
-        """TODO: input kode, nama, kategori, ui.input_enum(KondisiAlat) -> service.tambah."""
-        raise NotImplementedError("Paket 2: AlatMenu.tambah")
+        kode = ui.input_teks("Kode alat")
+        nama = ui.input_teks("Nama alat")
+        kategori = ui.input_teks("Kategori")
+        kondisi = ui.input_enum(KondisiAlat)
+        alat = self._service.tambah(kode, nama, kategori, kondisi)
+        print(f"Alat {alat.kode} berhasil ditambahkan.")
 
     def edit(self):
-        """TODO: minta kode -> service.ambil -> ui.input_opsional, ui.input_enum -> service.edit."""
-        raise NotImplementedError("Paket 2: AlatMenu.edit")
+        kode = ui.input_teks("Kode alat yang diedit")
+        alat = self._service.ambil(kode)  # error 'tidak ditemukan' muncul sebelum form diisi
+        print("Kosongkan untuk tetap memakai nilai lama.")
+        nama = ui.input_opsional("Nama", alat.nama)
+        kategori = ui.input_opsional("Kategori", alat.kategori)
+        kondisi = ui.input_enum(KondisiAlat)
+        alat = self._service.edit(alat.kode, nama, kategori, kondisi)
+        print(f"Alat {alat.kode} berhasil diperbarui.")
 
     def hapus(self):
-        """TODO: minta kode -> ui.konfirmasi -> service.hapus."""
-        raise NotImplementedError("Paket 2: AlatMenu.hapus")
+        kode = ui.input_teks("Kode alat yang dihapus")
+        alat = self._service.ambil(kode)
+        if not ui.konfirmasi(f"Hapus alat {alat.kode} ({alat.nama})?"):
+            print("Penghapusan dibatalkan.")
+            return
+        self._service.hapus(alat.kode)
+        print(f"Alat {alat.kode} berhasil dihapus.")
 
     def cari(self):
-        """TODO: minta kata kunci -> service.cari -> ui.tabel."""
-        raise NotImplementedError("Paket 2: AlatMenu.cari")
+        kata = ui.input_teks("Cari berdasarkan kode / nama / kategori")
+        self._tampilkan(self._service.cari(kata))
 
     def tampilkan_tersedia(self):
-        """Menu 7. TODO: service.daftar_tersedia -> ui.tabel."""
-        raise NotImplementedError("Paket 2: AlatMenu.tampilkan_tersedia")
+        """Menu 7."""
+        self._tampilkan(self._service.daftar_tersedia())
 
     def tampilkan_dipinjam(self):
-        """Menu 8. TODO: service.daftar_dipinjam -> ui.tabel."""
-        raise NotImplementedError("Paket 2: AlatMenu.tampilkan_dipinjam")
+        """Menu 8."""
+        self._tampilkan(self._service.daftar_dipinjam())
 
     def tampilkan_rusak(self):
-        """Menu 9. TODO: service.daftar_rusak -> ui.tabel."""
-        raise NotImplementedError("Paket 2: AlatMenu.tampilkan_rusak")
+        """Menu 9."""
+        self._tampilkan(self._service.daftar_rusak())
+
+    def _tampilkan(self, daftar):
+        if not daftar:
+            print("(tidak ada data)")
+            return
+        ui.tabel(self.KOLOM, [[a.kode, a.nama, a.kategori, a.kondisi.value, a.status.value]
+                              for a in daftar])

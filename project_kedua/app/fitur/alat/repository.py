@@ -1,50 +1,74 @@
-"""Paket 2. SQL untuk fitur alat (menu 2, 7, 8, 9)."""
+"""Repository alat: dict di memori + sinkron ke alat.txt lewat FileStorage.
+Hanya urusan data: tidak ada aturan bisnis, input(), atau print() selain peringatan muat."""
+from app.models.alat import Alat, KondisiAlat, StatusAlat
+from app.errors import AppError, ValidasiError, PenyimpananError
 
 
 class AlatRepository:
-    """Hanya berisi SQL, tanpa input/print."""
+    FILE = "alat.txt"   # format: kode|nama|kategori|kondisi|status
+    KOLOM = 5
 
-    def __init__(self, db, pembaca):
-        self._db = db
-        self._pembaca = pembaca
+    def __init__(self, storage):
+        self._storage = storage
+        self._data = {}  # {kode: Alat}
+        self._muat()
 
-    def tambah(self, alat):
-        """INSERT satu objek Alat. Enum boleh langsung dijadikan params."""
-        raise NotImplementedError("Paket 2: AlatRepository.tambah")
+    @staticmethod
+    def _dari_baris(kolom):
+        kode, nama, kategori, kondisi, status = kolom
+        kode = kode.upper()
+        if not kode or not nama or not kategori:
+            raise ValidasiError("kode, nama, atau kategori kosong")
+        try:
+            kondisi = KondisiAlat(kondisi)
+            status = StatusAlat(status)
+        except ValueError:
+            raise ValidasiError(f"kondisi/status tidak dikenal ('{kondisi}', '{status}')")
+        if status is StatusAlat.TERSEDIA and kondisi is not KondisiAlat.BAIK:
+            raise ValidasiError("alat rusak tidak boleh berstatus tersedia")
+        return Alat(kode, nama, kategori.lower(), kondisi, status)
 
-    def perbarui(self, alat, status_lama):
-        """UPDATE nama, kategori, kondisi, status, dan dihapus berdasarkan kode.
+    @staticmethod
+    def _ke_baris(alat):
+        return [alat.kode, alat.nama, alat.kategori, alat.kondisi.value, alat.status.value]
 
-        TODO: WHERE kode = %s AND status = %s (status_lama), supaya alat yang barusan dipinjam
-        lewat komputer anggota lain tidak tertimpa. Kembalikan hasil execute (0 = gagal).
-        """
-        raise NotImplementedError("Paket 2: AlatRepository.perbarui")
+    def _muat(self):
+        for kolom in self._storage.load(self.FILE, self.KOLOM):
+            try:
+                alat = self._dari_baris(kolom)
+            except AppError as e:
+                print(f"[PERINGATAN] {self.FILE}: baris '{'|'.join(kolom)}' dilewati ({e})")
+                continue
+            if alat.kode in self._data:
+                print(f"[PERINGATAN] {self.FILE}: kode ganda {alat.kode} dilewati")
+                continue
+            self._data[alat.kode] = alat
 
-    def tandai_dihapus(self, kode):
-        """Mengisi dihapus = TRUE, hanya jika alat tidak ada di transaksi aktif.
+    def _komit(self, data_baru):
+        """Tulis dulu ke file; memori baru diganti hanya jika file berhasil ditulis
+        (Aturan 7: data program dan file selalu sama)."""
+        baris = [self._ke_baris(a) for a in data_baru.values()]
+        if not self._storage.save(self.FILE, baris):
+            raise PenyimpananError("Gagal menyimpan ke alat.txt, perubahan dibatalkan")
+        self._data = data_baru
 
-        TODO, dalam satu `with self._db.transaksi() as trx:`
-        1. SELECT baris alat dengan FOR UPDATE (mengunci baris).
-        2. Hitung detail_transaksi JOIN transaksi yang statusnya bukan 'selesai'.
-        3. Jika ada, raise AturanBisnisError (otomatis rollback). Jika tidak, UPDATE.
-        """
-        raise NotImplementedError("Paket 2: AlatRepository.tandai_dihapus")
 
-    def cari(self, kata_kunci):
-        """List objek Alat yang kode, nama, atau kategorinya mengandung kata_kunci.
+        return sorted(self._data.values(), key=lambda a: a.kode)
 
-        TODO: LIKE dengan params f"%{kata_kunci}%", dan dihapus = FALSE.
-        """
-        raise NotImplementedError("Paket 2: AlatRepository.cari")
+    def get(self, kode):
+        return self._data.get(kode)
 
-    def daftar_dipinjam(self):
-        """List dict alat yang sedang dipinjam beserta peminjamnya.
+    def ada(self, kode):
+        return kode in self._data
 
-        TODO: JOIN alat, detail_transaksi (d.status = 'dipinjam'), transaksi, mahasiswa.
-        Ambil kode, nama alat, id transaksi, nama mahasiswa, batas_kembali.
-        """
-        raise NotImplementedError("Paket 2: AlatRepository.daftar_dipinjam")
+    def simpan(self, *daftar_alat):
+        """Tambah atau ganti satu/lebih alat sekaligus (atomik, satu kali tulis file)."""
+        data_baru = dict(self._data)
+        for alat in daftar_alat:
+            data_baru[alat.kode] = alat
+        self._komit(data_baru)
 
-    def daftar_rusak(self):
-        """List objek Alat yang kondisinya bukan baik dan belum dihapus."""
-        raise NotImplementedError("Paket 2: AlatRepository.daftar_rusak")
+    def hapus(self, kode):
+        data_baru = dict(self._data)
+        del data_baru[kode]
+        self._komit(data_baru)
