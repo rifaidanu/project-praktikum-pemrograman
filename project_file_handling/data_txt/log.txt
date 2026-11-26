@@ -24,3 +24,6 @@
 2026-11-26 08:46:53|Tambah alat: ALT-012 - Palu Thor (Elektronika)
 2026-11-26 08:47:33|Edit alat: ALT-012
 2026-11-26 08:47:41|Hapus alat: ALT-009
+2026-11-26 08:57:15|Buat transaksi T003 untuk NIM M006 (1 alat)
+2026-11-26 08:57:54|Pengembalian alat ALT-010 pada transaksi T003 (Kondisi: rusak berat)
+2026-11-26 08:57:54|Transaksi T003 selesai

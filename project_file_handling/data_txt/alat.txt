@@ -7,5 +7,5 @@ ALT-005|Switch Cisco 24-Port|Jaringan|baik|tersedia
 ALT-006|Solder Station Hakko|Elektronika|rusak ringan|tidak tersedia
 ALT-007|Kamera DSLR Canon 80D|Multimedia|baik|tersedia
 ALT-008|Tripod Kamera Takara|Multimedia|baik|tersedia
-ALT-010|Raspberry Pi 4 Model B|Komputasi|baik|tersedia
+ALT-010|Raspberry Pi 4 Model B|Komputasi|rusak berat|tidak tersedia
 ALT-012|Mjolnir|Elektronika|baik|tersedia

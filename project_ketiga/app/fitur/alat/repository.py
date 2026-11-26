@@ -1,74 +1,84 @@
-"""Repository alat: dict di memori + sinkron ke alat.txt lewat FileStorage.
-Hanya urusan data: tidak ada aturan bisnis, input(), atau print() selain peringatan muat."""
-from app.models.alat import Alat, KondisiAlat, StatusAlat
-from app.errors import AppError, ValidasiError, PenyimpananError
+"""Paket 2. SQL untuk fitur alat (menu 2, 7, 8, 9)."""
+from app.errors import AturanBisnisError
+from app.models import Alat, KondisiAlat, StatusAlat, StatusTransaksi
 
 
 class AlatRepository:
-    FILE = "alat.txt"   # format: kode|nama|kategori|kondisi|status
-    KOLOM = 5
+    """Hanya berisi SQL, tanpa input/print."""
 
-    def __init__(self, storage):
-        self._storage = storage
-        self._data = {}  # {kode: Alat}
-        self._muat()
+    def __init__(self, db, pembaca):
+        self._db = db
+        self._pembaca = pembaca
 
-    @staticmethod
-    def _dari_baris(kolom):
-        kode, nama, kategori, kondisi, status = kolom
-        kode = kode.upper()
-        if not kode or not nama or not kategori:
-            raise ValidasiError("kode, nama, atau kategori kosong")
-        try:
-            kondisi = KondisiAlat(kondisi)
-            status = StatusAlat(status)
-        except ValueError:
-            raise ValidasiError(f"kondisi/status tidak dikenal ('{kondisi}', '{status}')")
-        if status is StatusAlat.TERSEDIA and kondisi is not KondisiAlat.BAIK:
-            raise ValidasiError("alat rusak tidak boleh berstatus tersedia")
-        return Alat(kode, nama, kategori.lower(), kondisi, status)
+    def tambah(self, alat):
+        """INSERT satu objek Alat."""
+        self._db.execute(
+            "INSERT INTO alat (kode, nama, kategori, kondisi, status, dihapus)"
+            " VALUES (%s, %s, %s, %s, %s, %s)",
+            (alat.kode, alat.nama, alat.kategori, alat.kondisi, alat.status, alat.dihapus),
+        )
 
-    @staticmethod
-    def _ke_baris(alat):
-        return [alat.kode, alat.nama, alat.kategori, alat.kondisi.value, alat.status.value]
+    def perbarui(self, alat):
+        """UPDATE nama, kategori, kondisi, status, dan dihapus berdasarkan kode."""
+        return self._db.execute(
+            "UPDATE alat SET nama = %s, kategori = %s, kondisi = %s, status = %s, dihapus = %s"
+            " WHERE kode = %s",
+            (alat.nama, alat.kategori, alat.kondisi, alat.status, alat.dihapus, alat.kode),
+        )
 
-    def _muat(self):
-        for kolom in self._storage.load(self.FILE, self.KOLOM):
-            try:
-                alat = self._dari_baris(kolom)
-            except AppError as e:
-                print(f"[PERINGATAN] {self.FILE}: baris '{'|'.join(kolom)}' dilewati ({e})")
-                continue
-            if alat.kode in self._data:
-                print(f"[PERINGATAN] {self.FILE}: kode ganda {alat.kode} dilewati")
-                continue
-            self._data[alat.kode] = alat
+    def tandai_dihapus(self, kode):
+        """Mengisi dihapus = TRUE, hanya jika alat tidak ada di transaksi aktif (Aturan 6).
+        Diperiksa ulang di dalam transaction agar aman dari komputer lain."""
+        with self._db.transaksi() as trx:
+            baris = trx.fetch_one(
+                "SELECT kode FROM alat WHERE kode = %s AND dihapus = FALSE FOR UPDATE",
+                (kode,),
+            )
+            if baris is None:
+                raise AturanBisnisError(f"Alat dengan kode '{kode}' tidak ditemukan.")
 
-    def _komit(self, data_baru):
-        """Tulis dulu ke file; memori baru diganti hanya jika file berhasil ditulis
-        (Aturan 7: data program dan file selalu sama)."""
-        baris = [self._ke_baris(a) for a in data_baru.values()]
-        if not self._storage.save(self.FILE, baris):
-            raise PenyimpananError("Gagal menyimpan ke alat.txt, perubahan dibatalkan")
-        self._data = data_baru
+            aktif = trx.fetch_one(
+                "SELECT COUNT(*) AS jumlah FROM detail_transaksi d"
+                " JOIN transaksi t ON t.id = d.id_transaksi"
+                " WHERE d.kode_alat = %s AND t.status <> %s",
+                (kode, StatusTransaksi.SELESAI),
+            )
+            if aktif["jumlah"] > 0:
+                raise AturanBisnisError(
+                    f"Alat '{kode}' tidak bisa dihapus karena masih ada di transaksi aktif."
+                )
 
+            trx.execute("UPDATE alat SET dihapus = TRUE WHERE kode = %s", (kode,))
 
-        return sorted(self._data.values(), key=lambda a: a.kode)
+    def cari(self, kata_kunci):
+        """List objek Alat yang kode, nama, atau kategorinya mengandung kata_kunci."""
+        pola = f"%{kata_kunci}%"
+        baris = self._db.fetch_all(
+            "SELECT * FROM alat"
+            " WHERE dihapus = FALSE AND (kode LIKE %s OR nama LIKE %s OR kategori LIKE %s)"
+            " ORDER BY kode",
+            (pola, pola, pola),
+        )
+        return [Alat.dari_baris(b) for b in baris]
 
-    def get(self, kode):
-        return self._data.get(kode)
+    def daftar_berdasarkan_status(self, status):
+        """List objek Alat dengan status tertentu."""
+        baris = self._db.fetch_all(
+            "SELECT * FROM alat WHERE status = %s AND dihapus = FALSE ORDER BY kode",
+            (status,),
+        )
+        return [Alat.dari_baris(b) for b in baris]
 
-    def ada(self, kode):
-        return kode in self._data
+    def daftar_rusak(self):
+        """List objek Alat yang kondisinya tidak baik."""
+        baris = self._db.fetch_all(
+            "SELECT * FROM alat WHERE kondisi <> %s AND dihapus = FALSE ORDER BY kode",
+            (KondisiAlat.BAIK,),
+        )
+        return [Alat.dari_baris(b) for b in baris]
 
-    def simpan(self, *daftar_alat):
-        """Tambah atau ganti satu/lebih alat sekaligus (atomik, satu kali tulis file)."""
-        data_baru = dict(self._data)
-        for alat in daftar_alat:
-            data_baru[alat.kode] = alat
-        self._komit(data_baru)
+    def daftar_tersedia(self):
+        return self.daftar_berdasarkan_status(StatusAlat.TERSEDIA)
 
-    def hapus(self, kode):
-        data_baru = dict(self._data)
-        del data_baru[kode]
-        self._komit(data_baru)
+    def daftar_dipinjam(self):
+        return self.daftar_berdasarkan_status(StatusAlat.DIPINJAM)
