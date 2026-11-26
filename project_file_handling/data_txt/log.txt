@@ -18,3 +18,9 @@
 2026-11-26 08:40:04|Buat transaksi T001 untuk NIM M001 (2 alat)
 2026-11-26 08:40:04|Buat transaksi T002 untuk NIM M002 (2 alat)
 2026-11-26 08:40:04|Pengembalian alat ALT-003 pada transaksi T002 (Kondisi: baik)
+2026-11-26 08:45:32|Tambah mahasiswa: M007 - Danu Rifai
+2026-11-26 08:45:52|Edit mahasiswa: M006
+2026-11-26 08:46:01|Hapus mahasiswa: M007
+2026-11-26 08:46:53|Tambah alat: ALT-012 - Palu Thor (Elektronika)
+2026-11-26 08:47:33|Edit alat: ALT-012
+2026-11-26 08:47:41|Hapus alat: ALT-009
