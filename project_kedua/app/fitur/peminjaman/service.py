@@ -1,19 +1,13 @@
-"""Paket 3. Aturan bisnis peminjaman (menu 3 dan 4)."""
 from datetime import date, timedelta
-
 from app.errors import AturanBisnisError
 from app.models import Mahasiswa, StatusMahasiswa, Transaksi
 
-
 class PeminjamanService:
-    """Validasi dulu, baru panggil repository. Penolakan memakai AturanBisnisError."""
-
     def __init__(self, repository, pembaca):
         self._repository = repository
         self._pembaca = pembaca
 
     def buat_transaksi(self, nim, daftar_kode, lama_hari):
-        """Membuat peminjaman. Mengembalikan ID transaksi."""
         nim = nim.strip().upper()
 
         # Lama pinjam: 1 sampai 7 hari
@@ -55,9 +49,7 @@ class PeminjamanService:
         return self._repository.simpan(nim, daftar_kode, hari_ini, batas_kembali)
 
     def daftar_alat_tersedia(self):
-        """List objek Alat yang siap dipinjam."""
         return self._pembaca.daftar_alat_tersedia()
 
     def daftar_transaksi(self):
-        """List objek Transaksi."""
         return self._repository.daftar_transaksi()
